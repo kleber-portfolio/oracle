@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Oracle lambda
+
+Parameters:
+  StageName:
+    Type: String
+    Default: Develop
+    AllowedValues:
+      - Develop
+      - Prod
+    Description: "Stage Name (Develop, Prod)"
+
+  OracleEventFunctionName:
+    Type: String
+    Default: oracle-event-dev
+    Description: "The name of the Lambda function"
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+
+Resources:
+  OracleEventFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Runtime: java17
+      FunctionName: !Ref OracleEventFunctionName
+      Role: arn:aws:iam::103120217022:role/lambda-sqs-oracle-role
+      Handler: org.springframework.cloud.function.adapter.aws.FunctionInvoker
+      Environment:
+        Variables:
+          AWS_CLOUD_ACCESS_KEY: !Ref accessKey
+          AWS_CLOUD_SECRET_KEY: !Ref secretKey
+          AWS_CLOUD_REGION: !Ref awsRegion
+          AWS_CLOUD_DYNAMO_PERSON: !Ref dynamoPerson
+          MAIN_CLASS: io.github.mrspock182.oracle.OracleApplication
+
+  SQSTriggerOracleEvent:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      EventSourceArn: !Ref sqsArnChosenPerson
+      FunctionName: !GetAtt OracleEventFunction.Arn
+      Enabled: true
+
+  OracleEventFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/oracle-event-${StageName}"
+      RetentionInDays: 7

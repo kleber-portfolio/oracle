@@ -1,0 +1,18 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: oracle
+  cloud:
+    aws:
+      region:
+        static: ${AWS_CLOUD_REGION}
+      credentials:
+        access-key: ${AWS_CLOUD_ACCESS_KEY}
+        secret-key: ${AWS_CLOUD_SECRET_KEY}
+      dynamodb:
+        person-table: ${AWS_CLOUD_DYNAMO_PERSON}
+
+logging:
+  level:
+    org.springframework: ERROR

@@ -1,0 +1,59 @@
+name: oracle-event
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  build-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    env:
+      STAGE: ${{ github.ref_name }}
+      SERVICE_NAME: oracle-event
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Replace environment variables in template
+        run: |
+          sed -i "s|!Ref awsRegion|${{ vars.AWS_CLOUD_REGION_DEV }}|g" template.yaml
+          sed -i "s|!Ref accessKey|${{ secrets.AWS_CLOUD_ACCESS_KEY }}|g" template.yaml
+          sed -i "s|!Ref secretKey|${{ secrets.AWS_CLOUD_SECRET_KEY }}|g" template.yaml
+          sed -i "s|!Ref dynamoPerson|${{ vars.DYNAMO_PERSON_DEV }}|g" template.yaml
+          sed -i "s|!Ref sqsArnChosenPerson|${{ vars.CHOSEN_PERSON_ARN_QUEUE_DEV }}|g" template.yaml
+
+      - name: Set up Java
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Build with Maven
+        run: mvn clean install -DskipTests
+
+      - name: Setup AWS SAM
+        uses: aws-actions/setup-sam@v1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_CLOUD_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_CLOUD_SECRET_KEY }}
+          aws-region: ${{ vars.AWS_CLOUD_REGION_DEV }}
+
+      - name: SAM Build
+        run: sam build --use-container
+
+      - name: SAM Deploy
+        run: sam deploy
+          --no-confirm-changeset
+          --no-fail-on-empty-changeset
+          --stack-name oracle-develop
+          --resolve-s3
+          --capabilities CAPABILITY_IAM
+          --region ${{ vars.AWS_CLOUD_REGION_DEV }}
+          --parameter-overrides
+          StageName=Develop
+          LambdaFunctionName=oracle-develop

@@ -1,0 +1,18 @@
+version = 0.1
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+
+[develop.deploy.parameters]
+stack_name = "oracle-event-develop"
+s3_prefix = "oracle-event-develop"
+disable_rollback = true
+parameter_overrides = "StageName=develop"
+
+[prod.deploy.parameters]
+stack_name = "oracle-event-prod"
+s3_prefix = "oracle-event-prod"
+disable_rollback = true
+parameter_overrides = "StageName=prod"
